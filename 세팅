@@ -1,0 +1,27 @@
+1. aws 서버
+    - 보안 인바운드 규칙 5000, 1883 포트 추가
+    - update & upgrade
+    - 파이썬 가상환경 생성 
+        - 생성 시 --system-site-packages 옵션 사용 (python -m venv 'dName' --system-site-packages)
+    - MySQL DB 생성 (Database: smart_cradle, Tables: users, agents)
+        - 테이블 생성 쿼리문
+
+        -- users 테이블 생성 쿼리문
+        CREATE TABLE users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(80) UNIQUE NOT NULL,
+            password VARCHAR(80) NOT NULL
+        );
+
+        -- agents 테이블 생성 쿼리문
+        CREATE TABLE agents (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            uuid VARCHAR(255) UNIQUE NOT NULL,
+            ip VARCHAR(255) NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            user_id INT,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+    - 코드 내 IP & DB 알맞게 수정
+    - 
