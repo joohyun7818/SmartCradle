@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>스마트 요람 모니터링 시스템</title>
+    <style>
+        .stream-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .stream {
+            width: 300px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        .stream canvas {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>스마트 요람 모니터링 시스템</h1>
+
+    {% if agents %}
+        <div class="stream-container">
+            {% for agent in agents %}
+                <div class="stream">
+                    <h2>요람 {{ loop.index }} ({{ agent.uuid }})</h2>
+                    <canvas id="streamCanvas-{{ agent.uuid }}" width="640" height="480"></canvas>
+                    <p>온도: <span id="temperature-{{ agent.uuid }}">{% if agent.uuid in agent_sensor_data and agent_sensor_data[agent.uuid].temperature %}{{ agent_sensor_data[agent.uuid].temperature }}{% else %}N/A{% endif %}</span> °C</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const agents = JSON.parse('{{ agents|tojson|safe }}'); // Flask 변수를 JavaScript 객체로 변환
+
+                agents.forEach(agent => {
+                    connectWebSocket(agent.uuid);
+                });
+
+                function connectWebSocket(uuid) {
+                    const canvas = document.getElementById('streamCanvas-' + uuid);
+                    const ctx = canvas.getContext('2d');
+                    const temperatureSpan = document.getElementById('temperature-' + uuid);
+                    const websocket = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port + '/ws/' + uuid);
+
+                    websocket.onopen = function(event) {
+                        console.log('웹 소켓 연결 성공 (UUID: ' + uuid + ')');
+                    };
+
+                    websocket.onmessage = function(event) {
+                        const base64Frame = event.data;
+                        const img = new Image();
+                        img.onload = function() {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        };
+                        img.src = 'data:image/jpeg;base64,' + base64Frame;
+                    };
+
+                    websocket.onclose = function(event) {
+                        console.log('웹 소켓 연결 종료 (UUID: ' + uuid + '). 재연결 시도...');
+                        setTimeout(function() {
+                            connectWebSocket(uuid);
+                        }, 1000);
+                    };
+
+                    websocket.onerror = function(error) {
+                        console.error('웹 소켓 오류 (UUID: ' + uuid + '):', error);
+                    };
+                }
+            });
+        </script>
+
+    {% else %}
+        <p>등록된 요람이 없습니다.</p>
+    {% endif %}
+
+    <p><a href="/register_cradle">요람 등록</a> | <a href="/logout">로그아웃</a></p>
+</body>
+</html>

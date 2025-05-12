@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>요람 등록</title>
+    <style>
+        #qr-reader {
+            width: 300px;
+            height: 200px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        #qr-reader__dashboard_section_swaplink {
+            display: none !important; /* 파일 업로드 버튼 숨김 */
+        }
+    </style>
+</head>
+<body>
+    <h1>요람 등록</h1>
+
+    {% if session['user_id'] %}
+        <p>요람의 UUID를 입력하거나 QR 코드를 스캔하여 등록하세요.</p>
+
+        <form method="post" action="/register_cradle">
+            <p>UUID: <input type="text" id="cradle_uuid_input" name="cradle_uuid" required></p>
+            <p><input type="submit" value="등록"></p>
+        </form>
+
+        <div id="qr-reader"></div>
+        <div id="qr-reader-results"></div>
+
+        {% if error %}
+            <p style="color: red;">{{ error }}</p>
+        {% endif %}
+
+        <p><a href="/">대시보드로 돌아가기</a></p>
+
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            const qrResultElement = document.getElementById("qr-reader-results");
+            const uuidInput = document.getElementById("cradle_uuid_input");
+
+            function onScanSuccess(decodedText, decodedResult) {
+                console.log(`QR code scanned: ${decodedText}`, decodedResult);
+                uuidInput.value = decodedText;
+                html5QrCode.stop();
+                qrResultElement.innerHTML = `<span style="color: green;">QR 코드 스캔 성공: ${decodedText}</span>`;
+            }
+
+            function onScanFailure(error) {
+                // console.warn(`QR scan failed: ${error}`);
+                // QR 코드 스캔 실패 시에도 계속 시도할 수 있도록 에러 메시지를 숨김
+            }
+
+            html5QrCode.start(
+                { facingMode: "environment" }, // 후면 카메라 우선 사용
+                { fps: 10, qrbox: { width: 250, height: 150 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error("Unable to start scanning:", err);
+                qrResultElement.innerHTML = `<span style="color: red;">카메라 접근 오류: ${err}</span>`;
+            });
+        </script>
+
+    {% else %}
+        <p>로그인 후 요람을 등록할 수 있습니다.</p>
+        <p><a href="/login">로그인 페이지로 이동</a></p>
+    {% endif %}
+</body>
+</html>
